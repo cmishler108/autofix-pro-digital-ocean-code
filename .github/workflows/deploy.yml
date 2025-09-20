@@ -1,0 +1,69 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: fr/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd fr
+        npm ci
+        
+    - name: Build application
+      run: |
+        cd fr
+        npm run build
+        
+    - name: Deploy to Digital Ocean
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        password: ${{ secrets.DO_PASSWORD }}
+        script: |
+          # Navigate to application directory
+          cd /var/www/autofix-pro || mkdir -p /var/www/autofix-pro && cd /var/www/autofix-pro
+          
+          # Pull latest changes
+          if [ -d ".git" ]; then
+            git pull origin main
+          else
+            git clone https://github.com/cmishler108/autofix-pro-digital-ocean-code.git .
+          fi
+          
+          # Install dependencies and build frontend
+          cd fr
+          npm ci
+          npm run build
+          
+          # Restart services
+          pm2 restart autofix-pro-frontend || pm2 start npm --name "autofix-pro-frontend" -- start
+          
+          # Setup backend if needed
+          cd ../DoneEZ/DoneEZ
+          if [ -f "requirements.txt" ]; then
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate
+            pm2 restart autofix-pro-backend || pm2 start "source venv/bin/activate && python manage.py runserver 0.0.0.0:8000" --name "autofix-pro-backend"
+          fi
