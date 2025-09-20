@@ -1,0 +1,11 @@
+Deployment Test - $(date)
+
+This file is created to test the CI/CD pipeline deployment to Digital Ocean.
+
+Pipeline should:
+1. Detect this push to main branch
+2. Run GitHub Actions workflow
+3. Deploy to droplet at 104.236.4.217
+4. Application should be accessible at http://104.236.4.217
+
+Test initiated at: $(date)
