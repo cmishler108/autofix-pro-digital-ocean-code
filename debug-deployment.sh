@@ -36,11 +36,34 @@ echo "Testing backend (port 8000):"
 curl -I http://localhost:8000 2>/dev/null || echo "Backend not responding"
 echo ""
 
-echo "8. Checking Django backend status..."
-cd /root/autofix-pro-digital-ocean-code/DoneEZ
+echo "8. Checking Python environment and Django..."
+echo "Python version:"
+python3 --version
+echo ""
+echo "Python path:"
+python3 -c "import sys; print('\n'.join(sys.path))"
+echo ""
+echo "Checking if Django is installed:"
+python3 -c "import django; print(f'Django version: {django.get_version()}')" 2>/dev/null || echo "Django not found!"
+echo ""
+echo "Checking Django backend status..."
+cd /root/autofix-pro-digital-ocean-code/DoneEZ/DoneEZ
 if [ -f "manage.py" ]; then
     echo "Django project found. Checking if it can start..."
     python3 manage.py check --deploy 2>/dev/null || echo "Django check failed"
+    echo ""
+    echo "Testing Django import directly:"
+    python3 -c "
+import sys
+sys.path.insert(0, '/root/autofix-pro-digital-ocean-code/DoneEZ')
+try:
+    import django
+    print('Django import successful')
+    from django.core.management import execute_from_command_line
+    print('Django management import successful')
+except ImportError as e:
+    print(f'Django import failed: {e}')
+"
 else
     echo "Django manage.py not found in expected location"
 fi

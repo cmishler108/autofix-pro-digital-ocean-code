@@ -31,13 +31,7 @@ jobs:
           git clone https://github.com/cmishler108/autofix-pro-digital-ocean-code.git
           cd autofix-pro-digital-ocean-code
           
-          # Initialize and update submodules
-          echo "Initializing submodules..."
-          git submodule init
-          echo "Updating submodules..."
-          git submodule update --recursive
-          
-          echo "Current directory structure:"
+          echo "Repository cloned successfully. Current directory structure:"
           ls -la
           
           # Stop and delete all existing PM2 processes
@@ -66,7 +60,7 @@ jobs:
           pm2 start "npm start" --name "doneez-frontend" --cwd "/root/autofix-pro-digital-ocean-code/fr"
           
           # Setup and run backend
-          cd ../DoneEZ
+          cd DoneEZ
           
           # Verify requirements.txt exists
           echo "Checking requirements.txt..."
@@ -96,14 +90,14 @@ jobs:
           
           # Run Django migrations and collect static files using virtual environment
           echo "Running Django migrations..."
-          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py migrate
+          ../venv/bin/python manage.py migrate
           
           echo "Collecting static files..."
-          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py collectstatic --noinput
+          ../venv/bin/python manage.py collectstatic --noinput
           
           # Verify Django can import properly
           echo "Final Django verification..."
-          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python -c "import django; print(f'Django version: {django.get_version()}')"
+          ../venv/bin/python -c "import django; print(f'Django version: {django.get_version()}')"
           
           # Stop any existing backend process
           pm2 stop doneez-backend || true
@@ -111,7 +105,7 @@ jobs:
           
           # Start backend with PM2 using virtual environment Python
           echo "Starting Django backend with PM2 using virtual environment..."
-          pm2 start "/root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py runserver 0.0.0.0:8000" --name "doneez-backend" --cwd "/root/autofix-pro-digital-ocean-code/DoneEZ/DoneEZ"
+          pm2 start "../venv/bin/python manage.py runserver 0.0.0.0:8000" --name "doneez-backend" --cwd "/root/autofix-pro-digital-ocean-code/DoneEZ/DoneEZ"
           
           # Wait a moment and check if backend started successfully
           sleep 3

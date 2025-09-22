@@ -1,6 +1,0 @@
-[submodule "fr"]
-	path = fr
-	url = https://github.com/Dhruvsingh1234/doneez_front_end
-[submodule "DoneEZ/DoneEZ"]
-	path = DoneEZ/DoneEZ
-	url = https://github.com/TopSGW/DoneEZ.git
