@@ -11,8 +11,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
         
     - name: Deploy to Digital Ocean
       uses: appleboy/ssh-action@v1.0.3
