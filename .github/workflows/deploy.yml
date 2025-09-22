@@ -33,16 +33,18 @@ jobs:
           git submodule init
           git submodule update --recursive
           
+          # Stop and delete all existing PM2 processes
+          pm2 stop all || true
+          pm2 delete all || true
+          pm2 kill || true
+          
           # Setup and run frontend
           cd fr
           npm install
           npm run build
           
-          # Kill existing PM2 processes
-          pm2 delete all || true
-          
-          # Start frontend
-          pm2 start npm --name "frontend" -- start
+          # Start frontend with PM2
+          pm2 start npm --name "doneez-frontend" -- start
           
           # Setup and run backend
           cd ../DoneEZ/DoneEZ
@@ -53,8 +55,18 @@ jobs:
           # Run migrations
           python3 manage.py migrate
           
-          # Start backend
-          pm2 start "python3 manage.py runserver 0.0.0.0:8000" --name "backend"
+          # Collect static files
+          python3 manage.py collectstatic --noinput || true
+          
+          # Start backend with PM2
+          pm2 start "python3 manage.py runserver 0.0.0.0:8000" --name "doneez-backend"
+          
+          # Update nginx configuration
+          cd /home/autofix-pro-digital-ocean-code
+          sudo cp nginx.conf /etc/nginx/nginx.conf
+          
+          # Test and reload nginx
+          sudo nginx -t && sudo systemctl reload nginx
           
           # Save PM2 configuration
           pm2 save
