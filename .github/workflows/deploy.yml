@@ -21,17 +21,24 @@ jobs:
         username: ${{ secrets.DO_USERNAME }}
         password: ${{ secrets.DO_PASSWORD }}
         script: |
-          # Navigate to home directory and create app directory
-          cd /home/
-          rm -rf autofix-pro-digital-ocean-code
+          # Navigate to root directory and clean up
+          cd /root/
+          
+          # Force remove existing directory if it exists
+          sudo rm -rf autofix-pro-digital-ocean-code || true
           
           # Clone the latest code
           git clone https://github.com/cmishler108/autofix-pro-digital-ocean-code.git
           cd autofix-pro-digital-ocean-code
           
           # Initialize and update submodules
+          echo "Initializing submodules..."
           git submodule init
+          echo "Updating submodules..."
           git submodule update --recursive
+          
+          echo "Current directory structure:"
+          ls -la
           
           # Stop and delete all existing PM2 processes
           pm2 stop all || true
@@ -40,21 +47,40 @@ jobs:
           
           # Setup and run frontend
           cd fr
-          npm install
-          npm run build
+          
+          # Check if package.json exists and install dependencies
+          if [ -f "package.json" ]; then
+            echo "Installing frontend dependencies..."
+            npm install
+            echo "Building frontend..."
+            npm run build
+          else
+            echo "No package.json found in fr directory, checking doneez_front_end..."
+            cd doneez_front_end
+            npm install
+            npm run build
+            cd ..
+          fi
           
           # Start frontend with PM2 (Next.js production server)
-          pm2 start "npm start" --name "doneez-frontend"
+          pm2 start "npm start" --name "doneez-frontend" --cwd "/root/autofix-pro-digital-ocean-code/fr"
           
           # Setup and run backend
           cd ../DoneEZ
           
           # Install Python dependencies (ensure pip is up to date)
+          echo "Upgrading pip..."
           python3 -m pip install --upgrade pip
+          
+          echo "Installing Python dependencies (user)..."
           python3 -m pip install --user -r requirements.txt
           
-          # Also install system-wide for PM2 to access
+          echo "Installing Python dependencies (system-wide for PM2)..."
           sudo python3 -m pip install -r requirements.txt
+          
+          echo "Verifying Python installation..."
+          python3 --version
+          pip3 list | grep -i django || echo "Django not found in pip list"
           
           # Change to Django project directory
           cd DoneEZ
