@@ -3,8 +3,6 @@ name: Deploy to Digital Ocean
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:
@@ -16,23 +14,6 @@ jobs:
       with:
         submodules: recursive
         
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: fr/package-lock.json
-        
-    - name: Install dependencies
-      run: |
-        cd fr
-        npm ci
-        
-    - name: Build application
-      run: |
-        cd fr
-        npm run build
-        
     - name: Deploy to Digital Ocean
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -40,30 +21,41 @@ jobs:
         username: ${{ secrets.DO_USERNAME }}
         password: ${{ secrets.DO_PASSWORD }}
         script: |
-          # Navigate to application directory
-          cd /var/www/autofix-pro || mkdir -p /var/www/autofix-pro && cd /var/www/autofix-pro
+          # Navigate to home directory and create app directory
+          cd /home/
+          rm -rf autofix-pro-digital-ocean-code
           
-          # Pull latest changes
-          if [ -d ".git" ]; then
-            git pull origin main
-          else
-            git clone https://github.com/cmishler108/autofix-pro-digital-ocean-code.git .
-          fi
+          # Clone the latest code
+          git clone https://github.com/cmishler108/autofix-pro-digital-ocean-code.git
+          cd autofix-pro-digital-ocean-code
           
-          # Install dependencies and build frontend
+          # Initialize and update submodules
+          git submodule init
+          git submodule update --recursive
+          
+          # Setup and run frontend
           cd fr
-          npm ci
+          npm install
           npm run build
           
-          # Restart services
-          pm2 restart autofix-pro-frontend || pm2 start npm --name "autofix-pro-frontend" -- start
+          # Kill existing PM2 processes
+          pm2 delete all || true
           
-          # Setup backend if needed
+          # Start frontend
+          pm2 start npm --name "frontend" -- start
+          
+          # Setup and run backend
           cd ../DoneEZ/DoneEZ
-          if [ -f "requirements.txt" ]; then
-            python3 -m venv venv
-            source venv/bin/activate
-            pip install -r requirements.txt
-            python manage.py migrate
-            pm2 restart autofix-pro-backend || pm2 start "source venv/bin/activate && python manage.py runserver 0.0.0.0:8000" --name "autofix-pro-backend"
-          fi
+          
+          # Install Python dependencies
+          python3 -m pip install -r requirements.txt
+          
+          # Run migrations
+          python3 manage.py migrate
+          
+          # Start backend
+          pm2 start "python3 manage.py runserver 0.0.0.0:8000" --name "backend"
+          
+          # Save PM2 configuration
+          pm2 save
+          pm2 startup
