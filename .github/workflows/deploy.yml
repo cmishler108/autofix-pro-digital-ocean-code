@@ -73,47 +73,45 @@ jobs:
           ls -la requirements.txt
           cat requirements.txt
           
-          # Install Python dependencies (ensure pip is up to date)
-          echo "Upgrading pip..."
-          python3 -m pip install --upgrade pip
-          sudo python3 -m pip install --upgrade pip
+          # Create and activate virtual environment
+          echo "Creating Python virtual environment..."
+          python3 -m venv venv
+          source venv/bin/activate
           
-          echo "Installing Python dependencies (user)..."
-          python3 -m pip install --user -r requirements.txt
+          # Install Python dependencies in virtual environment
+          echo "Upgrading pip in virtual environment..."
+          pip install --upgrade pip
           
-          echo "Installing Python dependencies (system-wide for PM2)..."
-          sudo python3 -m pip install -r requirements.txt
+          echo "Installing Python dependencies in virtual environment..."
+          pip install -r requirements.txt
           
-          echo "Installing Django specifically to ensure it's available..."
-          sudo python3 -m pip install Django==4.2.16
-          sudo python3 -m pip install djangorestframework
-          sudo python3 -m pip install psycopg2-binary
-          
-          echo "Verifying Python installation..."
-          python3 --version
-          python3 -c "import sys; print('Python path:', sys.path)"
-          python3 -c "import django; print(f'Django version: {django.get_version()}')" || echo "Django import failed"
-          pip3 list | grep -i django || echo "Django not found in pip list"
+          echo "Verifying Python installation in virtual environment..."
+          python --version
+          python -c "import sys; print('Python path:', sys.path)"
+          python -c "import django; print(f'Django version: {django.get_version()}')"
+          pip list | grep -i django
           
           # Change to Django project directory
           cd DoneEZ
           
-          # Run migrations
-          python3 manage.py migrate
+          # Run Django migrations and collect static files using virtual environment
+          echo "Running Django migrations..."
+          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py migrate
           
-          # Collect static files
-          python3 manage.py collectstatic --noinput || true
+          echo "Collecting static files..."
+          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py collectstatic --noinput
           
-          # Verify Django installation
-          python3 -c "import django; print(f'Django version: {django.get_version()}')"
+          # Verify Django can import properly
+          echo "Final Django verification..."
+          /root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python -c "import django; print(f'Django version: {django.get_version()}')"
           
           # Stop any existing backend process
           pm2 stop doneez-backend || true
           pm2 delete doneez-backend || true
           
-          # Start backend with PM2 (with full path and proper working directory)
-          echo "Starting Django backend with PM2..."
-          pm2 start "python3 manage.py runserver 0.0.0.0:8000" --name "doneez-backend" --cwd "/root/autofix-pro-digital-ocean-code/DoneEZ/DoneEZ"
+          # Start backend with PM2 using virtual environment Python
+          echo "Starting Django backend with PM2 using virtual environment..."
+          pm2 start "/root/autofix-pro-digital-ocean-code/DoneEZ/venv/bin/python manage.py runserver 0.0.0.0:8000" --name "doneez-backend" --cwd "/root/autofix-pro-digital-ocean-code/DoneEZ/DoneEZ"
           
           # Wait a moment and check if backend started successfully
           sleep 3
